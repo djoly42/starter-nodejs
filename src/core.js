@@ -3,8 +3,7 @@
 const
     Salesforce =  require('./salesforceLib'),
 
-    { query, loginUrl, username, useraddress, password, securityToken, CRON, sobject, UPDATE_LEAD_LIMIT, CRON_FTP,
-        loginUrlEAttest, client_idEAttest, usernameEAttest, passwordEAttest } = process.env;
+    { CLIENT_ID, USERNAME, DOMAINMAIL, LOGIN_URL, QUERY } = process.env;
 
 class Core {
 
@@ -13,7 +12,7 @@ class Core {
 
         //get account SF
         let AccountAudits = await this.getAccountAndAuditSF()
-        console.log('AccountAudits ', AccountAudits.length);
+        //console.log('AccountAudits ', AccountAudits.length);
 
     }
 
@@ -21,16 +20,17 @@ class Core {
     static getAccountAndAuditSF = async () => {
 
         let sf = await new Salesforce({
-            "loginUrl" : loginUrl,
-            "username" : username + '@' + useraddress,
-            "password" : password,
-            "securityToken" : securityToken,
-            "sobject": sobject,
-            "query" : query
-        });
+            "CLIENT_ID" : CLIENT_ID,
+            "USERNAME" : USERNAME,
+            "DOMAINMAIL": DOMAINMAIL,
+            "LOGIN_URL" : LOGIN_URL,
+            "QUERY": QUERY,
+                });
         if(sf){
-            let ret = await sf.get();
-            return ret.records;
+            let ret = await sf.auth();
+            let accounts = await sf.get();
+            console.log('accounts ', accounts);
+            //return ret.records;
         }
         else{
             throw new TypeError('Fail client SF');

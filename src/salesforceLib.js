@@ -1,21 +1,44 @@
 'use strict';
 const
-    jsForce = require('jsforce');
+    fs = require('fs'),
+    jsForce = require('jsforce'),
+    {getToken} = require('sf-jwt-token'),
+    privateKey = fs.readFileSync('server.key').toString('utf8')
+
+
 
 class Salesforce {
     constructor(credentials) {
+        console.log('cred ' , credentials);
         if( !credentials
-            || !credentials.loginUrl
-            || !credentials.username
-            || !credentials.password
-            || !credentials.securityToken
-            || !credentials.query
-            || !credentials.sobject
+            || !credentials.CLIENT_ID
+            || !credentials.USERNAME
+            || !credentials.LOGIN_URL
         ) throw new TypeError('Credentials must be defined.');
 
         this.credentials = credentials;
 
-        this.client = new jsForce.Connection({loginUrl: this.credentials.loginUrl});
+        this.client = new jsForce.Connection();
+    }
+
+    async auth() {
+
+        try {
+            let jwttokenresponse = await getToken({
+                iss: this.credentials.CLIENT_ID,
+                sub: '',
+                aud: this.credentials.LOGIN_URL,
+                privateKey: privateKey
+            });
+            this.client.initialize({
+                instanceUrl: jwttokenresponse.instance_url,
+                accessToken: jwttokenresponse.access_token
+            });
+            
+        }
+        catch(e){
+            console.log(e);
+        }
     }
 
     insert(values) {
@@ -90,17 +113,9 @@ class Salesforce {
     }
 
     async get(values) {
-        let query = this.credentials.query;
-
+        
         return new Promise((resolve, reject) => {
-
-            this
-                .client
-                .login(this.credentials.username, this.credentials.password + this.credentials.securityToken, async (err, info) => {
-
-                    if (err) { return console.error(err); }
-
-
+                    let query = this.credentials.QUERY;
                     this.client.query(query, (err, result) => {
                         if (err) {
                             console.error("Error ", err);
@@ -109,8 +124,6 @@ class Salesforce {
                         return (resolve(result))
                     });
                     return (resolve)
-                });
-            return (resolve)
         });
     }
 }
